@@ -62,7 +62,11 @@ func main() {
 	go mainAPI.Start()
 
 	// Run CLI
-	RunCLI(userRepo, sessionRepo, diagnosesRepo, diseasesRepo, questionsRepo, symptomsRepo, rulesRepo)
+	diseaseCF := RunCLI(userRepo, sessionRepo, diagnosesRepo, diseasesRepo, questionsRepo, symptomsRepo, rulesRepo)
+	for disease, cf := range diseaseCF {
+		fmt.Printf("Disease: %s, CF: %.2f\n", disease, cf)
+	}
+
 }
 
 func RunCLI(
@@ -73,7 +77,7 @@ func RunCLI(
 	questionsRepo repo.QuestionsRepository,
 	symptomsRepo repo.SymptomsRepository,
 	rulesRepo repo.RulesRepository,
-) {
+) map[string]float64 {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
@@ -82,7 +86,7 @@ func RunCLI(
 		fmt.Println("3. Question")
 		// fmt.Println("4. Results")
 		fmt.Println("4. Exit")
-		fmt.Print("Select an option: ")
+		fmt.Println("Select an option: ")
 
 		input, _ := reader.ReadString('\n')
 		input = strings.TrimSpace(input)
@@ -96,7 +100,7 @@ func RunCLI(
 			question(userRepo, sessionRepo, diseasesRepo, symptomsRepo, questionsRepo, rulesRepo, diagnosesRepo)
 		case "4":
 			fmt.Println("Exiting...")
-			return
+			os.Exit(0)
 		default:
 			fmt.Println("Invalid option, please try again.")
 		}
@@ -152,6 +156,15 @@ func register(userRepo repo.UserRepository) {
 	fmt.Println("User registered successfully.")
 }
 
+var confidenceLevels = map[string]float64{
+	"1": 0.0, // Tidak Tahu
+	"2": 0.2, // Tidak Yakin
+	"3": 0.4, // Ragu-ragu
+	"4": 0.6, // Cukup Yakin
+	"5": 0.8, // Yakin
+	"6": 1.0, // Sangat Yakin
+}
+
 func question(
 	userRepo repo.UserRepository,
 	sessionRepo repo.SessionsRepository,
@@ -160,9 +173,32 @@ func question(
 	questionsRepo repo.QuestionsRepository,
 	rulesRepo repo.RulesRepository,
 	diagnosesRepo repo.DiagnosesRepository,
-) {
+) map[string]float64 {
 	reader := bufio.NewReader(os.Stdin)
-	questionID := 1 // Mulai dari pertanyaan pertama
+	questionID := 1
+	userAnswers := make(map[string]float64)
+
+	fmt.Println("==================================")
+	fmt.Println("Tidak Tahu: 1")
+	fmt.Println("Tidak Yakin: 2")
+	fmt.Println("Ragu-ragu: 3")
+	fmt.Println("Cukup Yakin: 4")
+	fmt.Println("Yakin: 5")
+	fmt.Println("Sangat Yakin: 6")
+	fmt.Println("==================================")
+
+	// Fetch rules from repository
+	rules, err := rulesRepo.FetchAll()
+	if err != nil {
+		fmt.Println("Error fetching rules:", err)
+		return nil
+	}
+
+	// Debug: Print fetched rules
+	fmt.Println("Fetched Rules:")
+	for _, rule := range rules {
+		fmt.Printf("Rule: %+v\n", rule)
+	}
 
 	for {
 		question, err := questionsRepo.FetchByID(questionID)
@@ -176,9 +212,46 @@ func question(
 		answer, _ := reader.ReadString('\n')
 		answer = strings.TrimSpace(answer)
 
-		// Lakukan sesuatu dengan jawaban di sini, misalnya menyimpan jawaban
+		if value, exists := confidenceLevels[answer]; exists {
+			userAnswers[question.Code] = value
+		} else {
+			fmt.Println("Invalid answer, please try again.")
+			continue
+		}
 
 		questionID++
 	}
 
+	// Debug: Print user answers
+	fmt.Println("User Answers:")
+	for code, cf := range userAnswers {
+		fmt.Printf("Code: %s, CF: %.2f\n", code, cf)
+	}
+
+	// Calculate Certainty Factors
+	diseaseCF := make(map[string]float64)
+
+	for _, rule := range rules {
+		if userCF, answered := userAnswers[rule.CodeSymptoms]; answered {
+			// Forward chaining calculation
+			cf := (float64(rule.Mb) - float64(rule.Md)) * userCF
+			fmt.Printf("Calculating CF for disease %s: CF = (Mb - Md) * userCF = (%.2f - %.2f) * %.2f = %.2f\n",
+				rule.CodeDeseases, float64(rule.Mb), float64(rule.Md), userCF, cf)
+
+			if existingCF, exists := diseaseCF[rule.CodeDeseases]; exists {
+				// Combine Certainty Factors using the provided formula
+				diseaseCF[rule.CodeDeseases] = existingCF + cf*(1-existingCF)
+			} else {
+				diseaseCF[rule.CodeDeseases] = cf
+			}
+		}
+	}
+
+	// Debug: Print calculated Certainty Factors
+	fmt.Println("Calculated Certainty Factors:")
+	for disease, cf := range diseaseCF {
+		fmt.Printf("Disease: %s, CF: %.2f\n", disease, cf)
+	}
+
+	return diseaseCF
 }

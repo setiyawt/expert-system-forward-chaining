@@ -36,7 +36,7 @@ type SuccessResponse struct {
 type Diagnoses struct { //sebagai jawaban hasil tes
 	ID          int     `json:"id"`
 	Name        string  `json:"name"`        // Nama penyakitnya
-	Nilai       float32 `json:"nilai"`       // Nilai dari Certainty Factor
+	Nilai       float32 `json:"nilai"`       // Nilai dari
 	Description string  `json:"description"` //Deskripsi dari penyakit tersebut
 }
 
