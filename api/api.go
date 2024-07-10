@@ -7,6 +7,8 @@ import (
 )
 
 type API struct {
+	userService      service.UserService
+	sessionService   service.SessionService
 	diagnosesService service.DiagnosesService
 	diseasesService  service.DiseasesService
 	questionsService service.QuestionsService
@@ -15,9 +17,11 @@ type API struct {
 	mux              *http.ServeMux
 }
 
-func NewAPI(diagnosesService service.DiagnosesService, diseasesService service.DiseasesService, questionsService service.QuestionsService, rulesService service.RulesService, symptomsService service.SymptomsService) API {
+func NewAPI(userService service.UserService, sessionService service.SessionService, diagnosesService service.DiagnosesService, diseasesService service.DiseasesService, questionsService service.QuestionsService, rulesService service.RulesService, symptomsService service.SymptomsService) API {
 	mux := http.NewServeMux()
 	api := API{
+		userService,
+		sessionService,
 		diagnosesService,
 		diseasesService,
 		questionsService,
@@ -27,36 +31,35 @@ func NewAPI(diagnosesService service.DiagnosesService, diseasesService service.D
 	}
 
 	//USERS
-	mux.Handle("/user/register", api.Post(http.HandlerFunc(api.Register)))                                  // register
-	mux.Handle("/user/login", api.Post(http.HandlerFunc(api.Login)))                                        // login
-	mux.Handle("/user/logout", api.Get(api.Auth(http.HandlerFunc(api.Logout))))                             // logout
-	mux.Handle("/user/get-all", api.Get(api.Auth(http.HandlerFunc(api.FetchAllUser))))                      // Shows all existing members
-	mux.Handle("/user/get-borrow", api.Get(api.Auth(http.HandlerFunc(api.GetAllMembersWithBorrowedCount)))) //The number of books being borrowed by each member
+	mux.Handle("/user/register", api.Post(http.HandlerFunc(api.Register)))
+	mux.Handle("/user/login", api.Post(http.HandlerFunc(api.Login)))
+	mux.Handle("/user/logout", api.Auth(http.HandlerFunc(api.Logout)))
+	mux.Handle("/user/diagnoses", api.Get(api.Auth(http.HandlerFunc(api.FetchAllDiagnoses)))) //histori diagnose
 
-	//BUKU
-	mux.Handle("/book/get-all", api.Get(api.Auth(http.HandlerFunc(api.FetchAllBook)))) // Shows all existing books and quantities and Books that are being borrowed are not counted
-	mux.Handle("/book/get", api.Get(api.Auth(http.HandlerFunc(api.FetchBookById))))    // mengambil semua buku berdasarkan ID
-	mux.Handle("/book/add", api.Post(api.Auth(http.HandlerFunc(api.StoreBook))))       //menambahkan buku
-	mux.Handle("/book/update", api.Put(api.Auth(http.HandlerFunc(api.UpdateBook))))    //mengupdate buku
-	mux.Handle("/book/delete", api.Delete(http.HandlerFunc(api.DeleteBook)))           //menghapus buku
+	// ADMIN
+	// Diseases
+	mux.Handle("/diseases/get-all", api.Get(api.Auth(http.HandlerFunc(api.FetchAllDiseases))))
+	mux.Handle("/diseases/add", api.Post(api.Auth(http.HandlerFunc(api.StoreDiseases))))
+	mux.Handle("/diseases/update", api.Put(api.Auth(http.HandlerFunc(api.UpdateDiseases))))
+	mux.Handle("/diseases/delete", api.Delete(api.Auth(http.HandlerFunc(api.DeleteDiseases))))
 
-	//BORROWED
-	mux.Handle("/borrow/get-all", api.Get(api.Auth(http.HandlerFunc(api.FetchAllBorrow)))) // mengambil buku yang dipinjam
-	mux.Handle("/borrow/get", api.Get(api.Auth(http.HandlerFunc(api.FetchBorrowById))))    // mengambil semua buku berdasarkan ID
-	mux.Handle("/borrow/add", api.Post(api.Auth(http.HandlerFunc(api.StoreBorrow))))       //menambahkan buku
-	mux.Handle("/borrow/update", api.Put(api.Auth(http.HandlerFunc(api.UpdateBorrow))))    //mengupdate buku
-	mux.Handle("/borrow/delete", api.Delete(http.HandlerFunc(api.DeleteBorrow)))           //menghapus buku
+	// Question
+	mux.Handle("/questions/get-all", api.Get(api.Auth(http.HandlerFunc(api.FetchAllQuestions))))
+	mux.Handle("/questions/add", api.Post(api.Auth(http.HandlerFunc(api.StoreQuestions))))
+	mux.Handle("/questions/update", api.Put(api.Auth(http.HandlerFunc(api.UpdateQuestions))))
+	mux.Handle("/questions/delete", api.Delete(api.Auth(http.HandlerFunc(api.DeleteQuestions))))
 
-	//RETURN BOOK
+	// Rules
+	mux.Handle("/rules/get-all", api.Get(api.Auth(http.HandlerFunc(api.FetchAllRules))))
+	mux.Handle("/rules/add", api.Post(api.Auth(http.HandlerFunc(api.StoreRules))))
+	mux.Handle("/rules/update", api.Put(api.Auth(http.HandlerFunc(api.UpdateRules))))
+	mux.Handle("/rules/delete", api.Delete(api.Auth(http.HandlerFunc(api.DeleteRules))))
 
-	mux.Handle("/return-book", api.Get(api.Auth(http.HandlerFunc(api.ReturnBook)))) // mengambil buku yang dipinjam //http://localhost:8080/return-book?code_member=M001
-
-	//PENALTIES
-	mux.Handle("/penalties/get-all", api.Get(api.Auth(http.HandlerFunc(api.FetchAllPenalties)))) // mengambil penalties list
-	mux.Handle("/penalties/get", api.Get(api.Auth(http.HandlerFunc(api.FetchPenaltiesById))))    // mengambil penalties berdasarkan ID
-	mux.Handle("/penalties/add", api.Post(api.Auth(http.HandlerFunc(api.StorePenalties))))       //menambahkan penalties
-	mux.Handle("/penalties/delete", api.Delete(http.HandlerFunc(api.DeletePenalties)))           //menghapus penalties
-	mux.Handle("/penalties/update", api.Put(api.Auth(http.HandlerFunc(api.UpdatePenalties))))    //mengupdate penalties
+	// Symptoms
+	mux.Handle("/symptoms/get-all", api.Get(api.Auth(http.HandlerFunc(api.FetchAllSymptoms))))
+	mux.Handle("/symptoms/add", api.Post(api.Auth(http.HandlerFunc(api.StoreSymptoms))))
+	mux.Handle("/symptoms/update", api.Put(api.Auth(http.HandlerFunc(api.UpdateSymptoms))))
+	mux.Handle("/symptoms/delete", api.Delete(api.Auth(http.HandlerFunc(api.DeleteSymptoms))))
 
 	return api
 }

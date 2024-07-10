@@ -30,27 +30,37 @@ func Connect(creds *model.Credential) (*sql.DB, error) {
 }
 
 func SQLExecute(db *sql.DB) error {
-	_, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, code VARCHAR(255), name VARCHAR(255), password VARCHAR(255))")
+	_, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username VARCHAR(255), password VARCHAR(255))")
 	if err != nil {
 		return err
 	}
 
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS sessions (id SERIAL PRIMARY KEY, token VARCHAR(255), name VARCHAR(255), expiry timestamp default NULL)")
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS sessions (id SERIAL PRIMARY KEY, token VARCHAR(255), username VARCHAR(255), expiry TIMESTAMP DEFAULT NULL)")
 	if err != nil {
 		return err
 	}
 
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS books (id SERIAL PRIMARY KEY, code VARCHAR(6), title VARCHAR(255), author VARCHAR(255), Stock INT)")
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS diseases (id SERIAL PRIMARY KEY, code VARCHAR(255) UNIQUE, name VARCHAR(255) UNIQUE)")
 	if err != nil {
 		return err
 	}
 
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS borrowed (id SERIAL PRIMARY KEY, code_book VARCHAR(5), code_member VARCHAR(4), borrowedDate timestamp default NULL, returnedDate timestamp default NULL, Status VARCHAR(10), late INT, quantity INT)")
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS symptoms (id SERIAL PRIMARY KEY, code VARCHAR(255) UNIQUE, name VARCHAR(255))")
 	if err != nil {
 		return err
 	}
 
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS penalties (id SERIAL PRIMARY KEY, code_member VARCHAR(4), penalty_type VARCHAR(50), penalty_amount DECIMAL(10, 2), penalty_active BOOLEAN, penalty_date TIMESTAMP, resolved_date TIMESTAMP)")
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS rules (id SERIAL PRIMARY KEY, code_diseases VARCHAR(255) REFERENCES diseases(code), code_symptoms VARCHAR(255) REFERENCES symptoms(code), md DECIMAL(10,2), mb DECIMAL(10,2))")
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS questions (id SERIAL PRIMARY KEY, code VARCHAR(255), question VARCHAR(255))")
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS diagnoses (id SERIAL PRIMARY KEY, name VARCHAR(255) REFERENCES diseases(name), nilai DECIMAL(10, 2), description VARCHAR(255))")
 	if err != nil {
 		return err
 	}

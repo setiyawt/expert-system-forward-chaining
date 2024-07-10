@@ -34,6 +34,8 @@ func main() {
 	defer dbConn.Close()
 
 	// Initialize repositories
+	userRepo := repo.NewUserRepo(dbConn)
+	sessionRepo := repo.NewSessionRepo(dbConn)
 	diagnosesRepo := repo.NewDiagnosesRepo(dbConn)
 	diseasesRepo := repo.NewDiseasesRepo(dbConn)
 	questionsRepo := repo.NewQuestionsRepo(dbConn)
@@ -41,6 +43,8 @@ func main() {
 	symptomsRepo := repo.NewSymptomsRepo(dbConn)
 
 	// Initialize services
+	userService := service.NewUserService(userRepo)
+	sessionService := service.NewSessionService(sessionRepo)
 	diagnosesService := service.NewDiagnosesService(diagnosesRepo)
 	diseasesService := service.NewDiseasesService(diseasesRepo)
 	questionsService := service.NewQuestionsService(questionsRepo)
@@ -48,6 +52,7 @@ func main() {
 	symptomsService := service.NewSymptomsService(symptomsRepo)
 
 	// Create new API
-	mainAPI := api.NewAPI(diagnosesService, diseasesService, questionsService, rulesService, symptomsService)
+	mainAPI := api.NewAPI(userService, sessionService, diagnosesService, diseasesService, questionsService, rulesService, symptomsService)
 	mainAPI.Start()
+	RunCLI(userRepo, sessionRepo, questionsRepo, diagnosesRepo)
 }
