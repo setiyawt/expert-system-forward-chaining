@@ -62,7 +62,7 @@ func main() {
 	go mainAPI.Start()
 
 	// Run CLI
-	RunCLI(userRepo, sessionRepo, diagnosesRepo, diseasesRepo, questionsRepo, rulesRepo)
+	RunCLI(userRepo, sessionRepo, diagnosesRepo, diseasesRepo, questionsRepo, symptomsRepo, rulesRepo)
 }
 
 func RunCLI(
@@ -71,6 +71,7 @@ func RunCLI(
 	diagnosesRepo repo.DiagnosesRepository,
 	diseasesRepo repo.DiseasesRepository,
 	questionsRepo repo.QuestionsRepository,
+	symptomsRepo repo.SymptomsRepository,
 	rulesRepo repo.RulesRepository,
 ) {
 	reader := bufio.NewReader(os.Stdin)
@@ -78,7 +79,9 @@ func RunCLI(
 	for {
 		fmt.Println("1. Login")
 		fmt.Println("2. Register")
-		fmt.Println("3. Exit")
+		fmt.Println("3. Question")
+		// fmt.Println("4. Results")
+		fmt.Println("4. Exit")
 		fmt.Print("Select an option: ")
 
 		input, _ := reader.ReadString('\n')
@@ -86,10 +89,12 @@ func RunCLI(
 
 		switch input {
 		case "1":
-			login(userRepo, sessionRepo, diagnosesRepo, diseasesRepo, questionsRepo, rulesRepo)
+			login(userRepo, sessionRepo)
 		case "2":
 			register(userRepo)
 		case "3":
+			question(userRepo, sessionRepo, diseasesRepo, symptomsRepo, questionsRepo, rulesRepo, diagnosesRepo)
+		case "4":
 			fmt.Println("Exiting...")
 			return
 		default:
@@ -101,10 +106,6 @@ func RunCLI(
 func login(
 	userRepo repo.UserRepository,
 	sessionRepo repo.SessionsRepository,
-	diagnosesRepo repo.DiagnosesRepository,
-	diseasesRepo repo.DiseasesRepository,
-	questionsRepo repo.QuestionsRepository,
-	rulesRepo repo.RulesRepository,
 ) {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Username: ")
@@ -149,4 +150,35 @@ func register(userRepo repo.UserRepository) {
 	}
 
 	fmt.Println("User registered successfully.")
+}
+
+func question(
+	userRepo repo.UserRepository,
+	sessionRepo repo.SessionsRepository,
+	diseasesRepo repo.DiseasesRepository,
+	symptomsRepo repo.SymptomsRepository,
+	questionsRepo repo.QuestionsRepository,
+	rulesRepo repo.RulesRepository,
+	diagnosesRepo repo.DiagnosesRepository,
+) {
+	reader := bufio.NewReader(os.Stdin)
+	questionID := 1 // Mulai dari pertanyaan pertama
+
+	for {
+		question, err := questionsRepo.FetchByID(questionID)
+		if err != nil {
+			fmt.Println("No more questions.")
+			break
+		}
+
+		fmt.Println(question.Question)
+		fmt.Print("Answer: ")
+		answer, _ := reader.ReadString('\n')
+		answer = strings.TrimSpace(answer)
+
+		// Lakukan sesuatu dengan jawaban di sini, misalnya menyimpan jawaban
+
+		questionID++
+	}
+
 }
