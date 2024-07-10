@@ -1,12 +1,16 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"forwardchaining/api"
 	"forwardchaining/db"
 	"forwardchaining/model"
 	repo "forwardchaining/repository"
 	"forwardchaining/service"
 	"log"
+	"os"
+	"strings"
 )
 
 func main() {
@@ -53,6 +57,96 @@ func main() {
 
 	// Create new API
 	mainAPI := api.NewAPI(userService, sessionService, diagnosesService, diseasesService, questionsService, rulesService, symptomsService)
-	mainAPI.Start()
-	RunCLI(userRepo, sessionRepo, questionsRepo, diagnosesRepo)
+
+	// Start the web server in a separate goroutine
+	go mainAPI.Start()
+
+	// Run CLI
+	RunCLI(userRepo, sessionRepo, diagnosesRepo, diseasesRepo, questionsRepo, rulesRepo)
+}
+
+func RunCLI(
+	userRepo repo.UserRepository,
+	sessionRepo repo.SessionsRepository,
+	diagnosesRepo repo.DiagnosesRepository,
+	diseasesRepo repo.DiseasesRepository,
+	questionsRepo repo.QuestionsRepository,
+	rulesRepo repo.RulesRepository,
+) {
+	reader := bufio.NewReader(os.Stdin)
+
+	for {
+		fmt.Println("1. Login")
+		fmt.Println("2. Register")
+		fmt.Println("3. Exit")
+		fmt.Print("Select an option: ")
+
+		input, _ := reader.ReadString('\n')
+		input = strings.TrimSpace(input)
+
+		switch input {
+		case "1":
+			login(userRepo, sessionRepo, diagnosesRepo, diseasesRepo, questionsRepo, rulesRepo)
+		case "2":
+			register(userRepo)
+		case "3":
+			fmt.Println("Exiting...")
+			return
+		default:
+			fmt.Println("Invalid option, please try again.")
+		}
+	}
+}
+
+func login(
+	userRepo repo.UserRepository,
+	sessionRepo repo.SessionsRepository,
+	diagnosesRepo repo.DiagnosesRepository,
+	diseasesRepo repo.DiseasesRepository,
+	questionsRepo repo.QuestionsRepository,
+	rulesRepo repo.RulesRepository,
+) {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Username: ")
+	username, _ := reader.ReadString('\n')
+	username = strings.TrimSpace(username)
+
+	fmt.Print("Password: ")
+	password, _ := reader.ReadString('\n')
+	password = strings.TrimSpace(password)
+
+	user, err := userRepo.FetchByID(1) // Gantilah metode FetchByID dengan metode yang tepat
+	if err != nil || user.Password != password {
+		fmt.Println("Invalid username or password.")
+		return
+	}
+
+	fmt.Println("Login successful.")
+	// Proceed to ask questions and analyze the answers
+	// Add your logic here
+}
+
+func register(userRepo repo.UserRepository) {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Username: ")
+	username, _ := reader.ReadString('\n')
+	username = strings.TrimSpace(username)
+
+	fmt.Print("Password: ")
+	password, _ := reader.ReadString('\n')
+	password = strings.TrimSpace(password)
+
+	user := model.User{
+		Username: username,
+		Password: password,
+		// Fill other fields as necessary
+	}
+
+	err := userRepo.Add(user)
+	if err != nil {
+		fmt.Println("Failed to register user:", err)
+		return
+	}
+
+	fmt.Println("User registered successfully.")
 }

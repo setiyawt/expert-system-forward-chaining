@@ -17,9 +17,10 @@ type userRepository struct {
 	db *sql.DB
 }
 
-func NewUserRepo(db *sql.DB) *userRepository {
+func NewUserRepo(db *sql.DB) UserRepository {
 	return &userRepository{db}
 }
+
 func (u *userRepository) Add(user model.User) error {
 	_, err := u.db.Exec(`INSERT INTO users (username, password) VALUES ($1, $2)`, user.Username, user.Password)
 	if err != nil {
