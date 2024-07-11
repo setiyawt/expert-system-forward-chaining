@@ -62,10 +62,7 @@ func main() {
 	go mainAPI.Start()
 
 	// Run CLI
-	diseaseCF := RunCLI(userRepo, sessionRepo, diagnosesRepo, diseasesRepo, questionsRepo, symptomsRepo, rulesRepo)
-	for disease, cf := range diseaseCF {
-		fmt.Printf("Disease: %s, CF: %.2f\n", disease, cf)
-	}
+	RunCLI(userRepo, sessionRepo, diagnosesRepo, diseasesRepo, questionsRepo, symptomsRepo, rulesRepo)
 
 }
 
@@ -97,7 +94,7 @@ func RunCLI(
 		case "2":
 			register(userRepo)
 		case "3":
-			question(userRepo, sessionRepo, diseasesRepo, symptomsRepo, questionsRepo, rulesRepo, diagnosesRepo)
+			return question(userRepo, sessionRepo, diseasesRepo, symptomsRepo, questionsRepo, rulesRepo, diagnosesRepo)
 		case "4":
 			fmt.Println("Exiting...")
 			os.Exit(0)
@@ -144,7 +141,6 @@ func register(userRepo repo.UserRepository) {
 	user := model.User{
 		Username: username,
 		Password: password,
-		// Fill other fields as necessary
 	}
 
 	err := userRepo.Add(user)
@@ -187,17 +183,24 @@ func question(
 	fmt.Println("Sangat Yakin: 6")
 	fmt.Println("==================================")
 
-	// Fetch rules from repository
+	// Fetch all symptoms
+	symptoms, err := symptomsRepo.FetchAll()
+	if err != nil {
+		fmt.Println("Error fetching symptoms:", err)
+		return nil
+	}
+
+	// Map symptom codes to names for easier lookup
+	symptomMap := make(map[string]string)
+	for _, symptom := range symptoms {
+		symptomMap[symptom.Code] = symptom.Name
+	}
+
+	// Fetch all rules
 	rules, err := rulesRepo.FetchAll()
 	if err != nil {
 		fmt.Println("Error fetching rules:", err)
 		return nil
-	}
-
-	// Debug: Print fetched rules
-	fmt.Println("Fetched Rules:")
-	for _, rule := range rules {
-		fmt.Printf("Rule: %+v\n", rule)
 	}
 
 	for {
@@ -222,36 +225,56 @@ func question(
 		questionID++
 	}
 
-	// Debug: Print user answers
 	fmt.Println("User Answers:")
 	for code, cf := range userAnswers {
-		fmt.Printf("Code: %s, CF: %.2f\n", code, cf)
+		if symptomName, exists := symptomMap[code]; exists {
+			fmt.Printf("Symptom: %s (Code: %s), CF: %.2f\n", symptomName, code, cf)
+		} else {
+			fmt.Printf("Code: %s, CF: %.2f\n", code, cf)
+		}
 	}
 
-	// Calculate Certainty Factors
 	diseaseCF := make(map[string]float64)
 
 	for _, rule := range rules {
 		if userCF, answered := userAnswers[rule.CodeSymptoms]; answered {
-			// Forward chaining calculation
 			cf := (float64(rule.Mb) - float64(rule.Md)) * userCF
-			fmt.Printf("Calculating CF for disease %s: CF = (Mb - Md) * userCF = (%.2f - %.2f) * %.2f = %.2f\n",
-				rule.CodeDeseases, float64(rule.Mb), float64(rule.Md), userCF, cf)
-
 			if existingCF, exists := diseaseCF[rule.CodeDeseases]; exists {
-				// Combine Certainty Factors using the provided formula
+
 				diseaseCF[rule.CodeDeseases] = existingCF + cf*(1-existingCF)
 			} else {
+
 				diseaseCF[rule.CodeDeseases] = cf
 			}
 		}
 	}
 
-	// Debug: Print calculated Certainty Factors
+	combinedCF := 0.0
+
 	fmt.Println("Calculated Certainty Factors:")
-	for disease, cf := range diseaseCF {
-		fmt.Printf("Disease: %s, CF: %.2f\n", disease, cf)
+	for _, cf := range userAnswers {
+		combinedCF = combinedCF + cf*(1-combinedCF)
+		fmt.Printf("Combined Certainty Factor: %.2f\n", combinedCF)
+	}
+	var disease string
+	switch {
+	case combinedCF >= 0.80:
+		disease = "Campak"
+	case combinedCF >= 0.60:
+		disease = "Campak Jerman"
+	case combinedCF >= 0.40:
+		disease = "Flu"
+	case combinedCF >= 0.20:
+		disease = "Pilek"
+	case combinedCF >= 0.10:
+		disease = "Gondongan"
+	case combinedCF >= 0.05:
+		disease = "Cacar Air"
+	default:
+		disease = "Batuk Rejan"
 	}
 
-	return diseaseCF
+	fmt.Printf("Predicted Disease: %s, with a certainty level of %.2f%%\n", disease, combinedCF*100)
+
+	return nil
 }
