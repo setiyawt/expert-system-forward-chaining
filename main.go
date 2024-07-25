@@ -251,20 +251,13 @@ func question(
 		questionID++
 	}
 
-	fmt.Println("User Answers:")
-	for code, cf := range userAnswers {
-		if symptomName, exists := symptomMap[code]; exists {
-			fmt.Printf("Symptom: %s (Code: %s), CF: %.2f\n", symptomName, code, cf)
-		} else {
-			fmt.Printf("Code: %s, CF: %.2f\n", code, cf)
-		}
-	}
-
 	diseaseCF := make(map[string]float64)
 
 	for _, rule := range rules {
 		if userCF, answered := userAnswers[rule.CodeSymptoms]; answered {
 			cf := (float64(rule.Mb) - float64(rule.Md)) * userCF
+			fmt.Printf("Disease: %s, Symptom Code: %s, User CF: %.2f, CF: %.2f\n",
+				rule.CodeDeseases, rule.CodeSymptoms, userCF, cf)
 			if existingCF, exists := diseaseCF[rule.CodeDeseases]; exists {
 
 				diseaseCF[rule.CodeDeseases] = existingCF + cf*(1-existingCF)
