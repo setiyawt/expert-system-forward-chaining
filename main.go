@@ -85,6 +85,7 @@ func RunCLI(
 		fmt.Println("3. Question")
 
 		fmt.Println("4. Exit")
+		fmt.Println("=======================================")
 		fmt.Println("Select an option: ")
 
 		input, _ := reader.ReadString('\n')
@@ -125,14 +126,17 @@ func login(
 	password, _ := reader.ReadString('\n')
 	password = strings.TrimSpace(password)
 
-	user, err := userRepo.FetchByID(1) // Gantilah metode FetchByID dengan metode yang tepat
+	user, err := userRepo.FetchByID(1)
 	if err != nil || user.Password != password {
+		fmt.Println("=======================================")
 		fmt.Println("Invalid username or password.")
+		fmt.Println("=======================================")
 		return
 	}
 	loggedIn = true
+	fmt.Println("=======================================")
 	fmt.Println("Login successful.")
-
+	fmt.Println("=======================================")
 }
 
 func register(userRepo repo.UserRepository) {
@@ -150,13 +154,28 @@ func register(userRepo repo.UserRepository) {
 		Password: password,
 	}
 
-	err := userRepo.Add(user)
+	err := userRepo.CheckAvail(username)
 	if err != nil {
-		fmt.Println("Failed to register user:", err)
+		if err.Error() == "username already exists" {
+			fmt.Println("=======================================")
+			fmt.Println("Username already exists. Please choose a different username.")
+			fmt.Println("=======================================")
+			return
+		}
+		fmt.Println("Error checking user availability:", err)
 		return
 	}
 
+	err = userRepo.Add(user)
+	if err != nil {
+		fmt.Println("=======================================")
+		fmt.Println("Failed to register user:", err)
+		fmt.Println("=======================================")
+		return
+	}
+	fmt.Println("=======================================")
 	fmt.Println("User registered successfully.")
+	fmt.Println("=======================================")
 }
 
 var confidenceLevels = map[string]float64{

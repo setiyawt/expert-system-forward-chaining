@@ -8,7 +8,7 @@ import (
 
 type UserRepository interface {
 	Add(user model.User) error
-	CheckAvail(user model.User) error
+	CheckAvail(username string) error
 	FetchByID(id int) (*model.User, error)
 	CheckPass(user model.User, password string) error
 }
@@ -30,16 +30,19 @@ func (u *userRepository) Add(user model.User) error {
 	return nil
 }
 
-func (u *userRepository) CheckAvail(user model.User) error {
-	var count int
-	err := u.db.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1 AND password = $2", user.Username, user.Password).Scan(&count)
+func (u *userRepository) CheckAvail(username string) error {
+	var existingUsername string
+	err := u.db.QueryRow("SELECT username FROM users WHERE username = $1", username).Scan(&existingUsername)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			// Username tidak ditemukan, tidak ada kesalahan
+			return nil
+		}
+		// Kesalahan saat melakukan query
 		return err
 	}
-	if count == 0 {
-		return errors.New("user not found")
-	}
-	return nil
+	// Username ditemukan
+	return errors.New("username already exists")
 }
 
 func (u *userRepository) FetchByID(id int) (*model.User, error) {

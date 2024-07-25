@@ -22,7 +22,7 @@ func NewUserService(userRepository repository.UserRepository) UserService {
 }
 
 func (s *userService) Login(user model.User) error {
-	err := s.userRepository.CheckAvail(user)
+	err := s.userRepository.CheckAvail(user.Username)
 	if err != nil {
 		return err
 	}
