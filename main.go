@@ -66,6 +66,8 @@ func main() {
 
 }
 
+var loggedIn = false
+
 func RunCLI(
 	userRepo repo.UserRepository,
 	sessionRepo repo.SessionsRepository,
@@ -81,7 +83,7 @@ func RunCLI(
 		fmt.Println("1. Login")
 		fmt.Println("2. Register")
 		fmt.Println("3. Question")
-		// fmt.Println("4. Results")
+
 		fmt.Println("4. Exit")
 		fmt.Println("Select an option: ")
 
@@ -94,7 +96,12 @@ func RunCLI(
 		case "2":
 			register(userRepo)
 		case "3":
-			return question(userRepo, sessionRepo, diseasesRepo, symptomsRepo, questionsRepo, rulesRepo, diagnosesRepo)
+			if !loggedIn {
+				fmt.Println("Please Login first")
+				fmt.Println("=========================================")
+			} else {
+				question(userRepo, sessionRepo, diseasesRepo, symptomsRepo, questionsRepo, rulesRepo, diagnosesRepo)
+			}
 		case "4":
 			fmt.Println("Exiting...")
 			os.Exit(0)
@@ -108,6 +115,7 @@ func login(
 	userRepo repo.UserRepository,
 	sessionRepo repo.SessionsRepository,
 ) {
+
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Username: ")
 	username, _ := reader.ReadString('\n')
@@ -122,10 +130,9 @@ func login(
 		fmt.Println("Invalid username or password.")
 		return
 	}
-
+	loggedIn = true
 	fmt.Println("Login successful.")
-	// Proceed to ask questions and analyze the answers
-	// Add your logic here
+
 }
 
 func register(userRepo repo.UserRepository) {
